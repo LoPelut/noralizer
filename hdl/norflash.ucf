@@ -1,0 +1,176 @@
+#
+# twlfpga constraints and wiring information.
+#
+# This is for bushing's "twlfpga" board, which is the successor to
+# the "RAM Tracer version 2" prototype. This board is very similar
+# to the prototype, with some small modifications and several extra
+# peripherals.
+#
+# This file contains both the FPGA constraints and some
+# human-readable notes about other necessary hookups.
+#
+# -- Micah Dowty <micah@navi.cx>
+
+########################################################
+#
+# On-board peripherals
+#
+
+# LEDs
+
+NET "led<0>" LOC = "P128" | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "led<1>" LOC = "P127" | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "led<2>" LOC = "P123" | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+NET "led<3>" LOC = "P122" | IOSTANDARD = LVCMOS33 | SLEW = FAST | DRIVE = 24;
+
+
+########################################################
+#
+# USB interface: FTDI FT2232H Mini Module
+#
+# http://www.ftdichip.com/Products/EvaluationKits/FT2232H_MiniModule.htm
+#
+
+# This module is configured as USB Self-Powered, drawing its 5V
+# power from the FPGA board.
+#
+#    CN2 pins 1,3,5 = V3V3
+#    CN2 pins 11,21 + CN3 pins 12,22 = VIO
+#    Connect V3V3 and VIO together.
+#
+#    Ground:    CN3-2
+#    VCC (+5v): CN3-3
+
+# All FT2232H connections are made on Bank 2 of the FPGA,
+# configured with 3.3v I/O. Port B of the FT2232H is unused,
+# since it is unavailable when using the high-speed synchronous
+# FIFO. Port A is used in synchronous FIFO mode during normal
+# operation, but we also use the FT2232H to configure the FPGA.
+#
+# During configuration:
+#
+#    D0-7:     Parallel configuration data from FT2232H to FPGA
+#    CSI_B:    Chip select, must be low during configuration
+#    RDWR_B:   Read/write, must be  low during configuration
+#    CCLK:     Data clock (data latched on rising edge)
+#    PROG_B:   Pulse low to reset FPGA. Must be high during config.
+#    DONE:     Configuration successful?
+#
+# We'll use interface A in asynchronous bit-bang mode to actually
+# clock out the configuration bitstream. The other relevant pins
+# (CSI, RDWR, PROG, DONE) are connected to port B, also in bit-bang mode.
+# These pins are connected via 1K series current-limiting resistors.
+#
+#    FT2232H Name     Pin#     FPGA Name   Pin#
+#    ------------------------------------------
+#
+#    AD0              CN2-7    D0          P87
+#    AD1              CN2-10   D1          P83
+#    AD2              CN2-9    D2          P82
+#    AD3              CN2-12   D3          P78
+#    AD4              CN2-14   D4          P77
+#    AD5              CN2-13   D5          P76
+#    AD6              CN2-16   D6          P75
+#    AD7              CN2-15   D7          P74
+#    AC0/RXF#         CN2-18   IO          P63
+#    AC1/TXE#/WRSTB#  CN2-17   CCLK        P103
+#    AC2/RD#          CN2-20   IO          P62
+#    AC3/WR#          CN2-19   IO          P65
+#    AC5/CLKOUT       CN2-24   M2/GCLK1    P81
+#    AC6/OE#          CN2-23   IO          P64
+#    BD0              CN3-26   CSI         P61
+#    BD1              CN3-25   RDWR        P80
+#    BD2              CN3-24*  DONE        P104
+#    BD3              CN3-23*  PROG        P1
+#
+#  * = Series 330 ohm resistor
+#
+#  NOTE: All of the GCLK pins on bank 2 are shared with either
+#        a data bit or with M2. We can't share with a data bit,
+#        so we choose the lesser of two evils.. since M2 needs
+#        to be 1 to select slave parallel configuration mode,
+#        it's important that our CLKOUT pin is 1 or high-Z when
+#        the FPGA starts up. This should be the case.
+#
+
+# Master clock, provided by the FT2232H. Runs at 60 MHz.
+
+NET "mclk"  LOC = "P81" | IOSTANDARD = LVCMOS33 | TNM_NET = mclk ;
+TIMESPEC TS_mclk = PERIOD "mclk" 60 MHz HIGH 50%;
+
+# Synchronous FIFO
+
+NET "usb_d<0>" LOC = "P87";
+NET "usb_d<1>" LOC = "P83";
+NET "usb_d<2>" LOC = "P82";
+NET "usb_d<3>" LOC = "P78";
+NET "usb_d<4>" LOC = "P77";
+NET "usb_d<5>" LOC = "P76";
+NET "usb_d<6>" LOC = "P75";
+NET "usb_d<7>" LOC = "P74";
+
+NET "usb_rxf_n" LOC = "P63";
+NET "usb_txe_n" LOC = "P103";
+NET "usb_rd_n"  LOC = "P62";
+NET "usb_wr_n"  LOC = "P65";
+NET "usb_oe_n"  LOC = "P64";
+
+NET "usb_*" IOSTANDARD = LVCMOS33;
+
+# Free pins
+
+NET "nor_a<0>" LOC = "P172";
+NET "nor_a<1>" LOC = "P177";
+NET "nor_a<2>" LOC = "P187";
+NET "nor_a<3>" LOC = "P189";
+NET "nor_a<4>" LOC = "P190";
+NET "nor_a<5>" LOC = "P192";
+NET "nor_a<6>" LOC = "P193";
+NET "nor_a<7>" LOC = "P196";
+NET "nor_a<8>" LOC = "P197";
+NET "nor_a<9>" LOC = "P199";
+NET "nor_a<10>" LOC = "P200";
+NET "nor_a<11>" LOC = "P202";
+NET "nor_a<12>" LOC = "P203";
+NET "nor_a<13>" LOC = "P205";
+NET "nor_a<14>" LOC = "P2";
+NET "nor_a<15>" LOC = "P3";
+NET "nor_a<16>" LOC = "P4";
+NET "nor_a<17>" LOC = "P5";
+NET "nor_a<18>" LOC = "P8";
+NET "nor_a<19>" LOC = "P9";
+NET "nor_a<20>" LOC = "P11";
+NET "nor_a<21>" LOC = "P12";
+NET "nor_a<22>" LOC = "P15";
+
+NET "nor_trist_n" LOC = "P16";
+NET "nor_reset_n" LOC = "P18";
+NET "nor_ready" LOC = "P19" | PULLUP;
+#NET "free" LOC = "P22";
+NET "nor_we_n" LOC = "P23";
+NET "nor_ce_n" LOC = "P24";
+NET "nor_oe_n" LOC = "P25";
+NET "nor_d<0>" LOC = "P28";
+NET "nor_d<1>" LOC = "P29";
+NET "nor_d<2>" LOC = "P30";
+NET "nor_d<3>" LOC = "P31";
+NET "nor_d<4>" LOC = "P33";
+NET "nor_d<5>" LOC = "P34";
+NET "nor_d<6>" LOC = "P35";
+NET "nor_d<7>" LOC = "P36";
+NET "nor_d<8>" LOC = "P39";
+NET "nor_d<9>" LOC = "P40";
+NET "nor_d<10>" LOC = "P41";
+NET "nor_d<11>" LOC = "P42";
+NET "nor_d<12>" LOC = "P45";
+NET "nor_d<13>" LOC = "P47";
+NET "nor_d<14>" LOC = "P48";
+NET "nor_d<15>" LOC = "P49";
+NET "nor_vcc" LOC = "P50";
+
+NET "nor_*" IOSTANDARD = LVCMOS33;
+
+#NET "nc1" LOC = "P68";
+#NET "nc2" LOC = "P69";
+
+
